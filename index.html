@@ -1,4 +1,4 @@
-<html>
+<? <html>
 
 <body>
   <h1>Mr. McFee</h1>
@@ -6,4 +6,206 @@
   <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnlqd3dqN2VxbHJ2MHU1c3ZybjVjbXM0ZTZ5ZDZ3c3NjN3ZhbmZpMiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/cFdHXXm5GhJsc/giphy.gif" />
 </body>
 
+</html>
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Awesome Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            background-color: #f4f4f4;
+        }
+        .side-banner {
+            width: 200px;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+        .side-banner h2 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .side-banner ul {
+            list-style: none;
+            padding: 0;
+        }
+        .side-banner ul li {
+            margin-bottom: 15px;
+        }
+        .side-banner ul li a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .side-banner ul li a:hover {
+            background-color: #575757;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .section {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .section h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .section p {
+            line-height: 1.6;
+        }
+        .embedded-link {
+            display: inline-block;
+            margin-right: 15px;
+            margin-bottom: 10px;
+        }
+        .embedded-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .embedded-link a:hover {
+            text-decoration: underline;
+        }
+        video {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="side-banner">
+        <h2>Navigation</h2>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About Us</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#gallery">Gallery</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <section id="home" class="section">
+            <h3>Welcome to Our Page!</h3>
+            <p>This is the main content area where you can place all your interesting information. We've designed this template to be flexible and easy to use.</p>
+
+            <h4>Useful Links:</h4>
+            <p>
+                <span class="embedded-link"><a href="https://www.google.com" target="_blank">Google</a></span>
+                <span class="embedded-link"><a href="https://www.wikipedia.org" target="_blank">Wikipedia</a></span>
+                <span class="embedded-link"><a href="https://developer.mozilla.org/en-US/docs/Web/HTML" target="_blank">MDN HTML Docs</a></span>
+            </p>
+
+            <h4>An Embedded Video:</h4>
+            <video controls>
+                <source src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <p>A short description for the video above.</p>
+
+        </section>
+
+        <section id="about" class="section">
+            <h3>About Us</h3>
+            <p>We are a dedicated team passionate about creating valuable content and resources for our users. Our mission is to provide high-quality information and an engaging user experience.</p>
+
+            <h4>More Resources:</h4>
+            <p>
+                <span class="embedded-link"><a href="https://www.nasa.gov" target="_blank">NASA</a></span>
+                <span class="embedded-link"><a href="https://www.nationalgeographic.com/" target="_blank">National Geographic</a></span>
+            </p>
+
+            <h4>An Image from Our Work:</h4>
+            <img src="https://via.placeholder.com/600x400" alt="Placeholder Image">
+            <p>This is a placeholder image to demonstrate the image embedding.</p>
+
+        </section>
+
+        <section id="services" class="section">
+            <h3>Our Services</h3>
+            <p>We offer a range of services designed to meet your needs. From web development to content creation, we've got you covered. Contact us for more details!</p>
+
+            <h4>Another Video Example:</h4>
+            <video controls>
+                <source src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <p>This video demonstrates something related to our services.</p>
+        </section>
+
+        <section id="gallery" class="section">
+            <h3>Gallery</h3>
+            <p>Explore our gallery of images and videos. We are constantly updating our content to bring you the best.</p>
+            <img src="https://via.placeholder.com/400x300" alt="Another Placeholder Image 1" style="margin-right: 15px;">
+            <img src="https://via.placeholder.com/400x300" alt="Another Placeholder Image 2">
+            <p>More images will be added here soon!</p>
+        </section>
+
+        <section id="contact" class="section">
+            <h3>Contact Us</h3>
+            <p>Have questions or need support? Reach out to us through our <a href="mailto:info@example.com">email</a> or visit our social media pages.</p>
+            <p>
+                <span class="embedded-link"><a href="https://www.twitter.com" target="_blank">Twitter</a></span>
+                <span class="embedded-link"><a href="https://www.facebook.com" target="_blank">Facebook</a></span>
+            </p>
+        </section>
+
+    </main>
+
+    <script>
+        // Example JavaScript for interactive elements (optional)
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded successfully!');
+
+            // You could add dynamic content here, e.g.,
+            // const currentYear = new Date().getFullYear();
+            // document.getElementById('footer-year').textContent = currentYear;
+
+            // Example of adding an event listener to a link (for demonstration)
+            const serviceLink = document.querySelector('.side-banner ul li a[href="#services"]');
+            if (serviceLink) {
+                serviceLink.addEventListener('click', function(event) {
+                    // event.preventDefault(); // Uncomment to prevent default smooth scroll
+                    console.log('Services link clicked!');
+                    // You could add an animation or a message here
+                });
+            }
+        });
+
+        // Another script example: simple alert on page load after a delay
+        // setTimeout(() => {
+        //     alert('Welcome to our interactive page!');
+        // }, 3000);
+    </script>
+
+    </body>
 </html>
