@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Rubric</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .rubric-row:nth-child(odd) {
+            background-color: rgba(243, 244, 246, 0.5);
+        }
+        
+        .rating-cell {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .rating-cell:hover {
+            background-color: rgba(209, 213, 219, 0.5);
+            cursor: pointer;
+        }
+        
+        .selected {
+            background-color: #4f46e5 !important;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .top-bar {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .student-name-field {
+            margin-right: 10px;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            border: 2px solid #4f46e5;
+            font-weight: 500;
+            width: 200px;
+        }
+        
+        .score-display {
+            background-color: #4f46e5;
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            font-weight: 600;
+        }
+        
+        .feedback-row {
+            display: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .feedback-row.visible {
+            display: table-row;
+        }
+        
+        .description-row {
+            display: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .description-row.visible {
+            display: table-row;
+        }
+        
+        .level-description-row {
+            display: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .level-description-row.visible {
+            display: table-row;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.visible {
+            display: flex;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .criteria-name {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .criteria-name:hover {
+            color: #4f46e5;
+        }
+        
+        .criteria-name::after {
+            content: "ⓘ";
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+            color: #6366f1;
+        }
+        
+        .error-message {
+            color: #dc2626;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-align: right;
+        }
+        
+        .success-message {
+            color: #10B981;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-align: right;
+        }
+        
+        .error-message.visible, .success-message.visible {
+            opacity: 1;
+        }
+        
+        .highlight-missing {
+            animation: pulse 1.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { background-color: rgba(239, 68, 68, 0); }
+            50% { background-color: rgba(239, 68, 68, 0.2); }
+            100% { background-color: rgba(239, 68, 68, 0); }
+        }
+        
+        .finalized-view {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .rating-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: white;
+        }
+        
+        .rating-1 { background-color: #EF4444; }
+        .rating-2 { background-color: #F59E0B; }
+        .rating-3 { background-color: #3B82F6; }
+        .rating-4 { background-color: #10B981; }
+        
+        .feedback-card {
+            border-left: 4px solid #4f46e5;
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-purple-50 min-h-screen p-4 md:p-8">
+    <div id="rubric-container" class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden relative">
+        <!-- Student name and score display in top right corner -->
+        <div class="top-bar">
+            <input type="text" id="student-name" class="student-name-field" placeholder="Student Name" />
+            <div class="score-display">
+                Score: <span id="corner-score">0</span>/20
+            </div>
+        </div>
+        
+        <div class="p-6 bg-indigo-600 text-white">
+            <h1 class="text-2xl font-bold">Interactive Rubric</h1>
+            <p class="text-indigo-100 mt-1">Click on a cell to select a rating for each criterion</p>
+        </div>
+        
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-indigo-100 text-indigo-800">
+                            <th class="p-4 text-left font-semibold border-b-2 border-indigo-200 w-1/4">Criteria</th>
+                            <th class="p-4 text-center font-semibold border-b-2 border-indigo-200">Level 1</th>
+                            <th class="p-4 text-center font-semibold border-b-2 border-indigo-200">Level 2</th>
+                            <th class="p-4 text-center font-semibold border-b-2 border-indigo-200">Level 3</th>
+                            <th class="p-4 text-center font-semibold border-b-2 border-indigo-200">Level 4</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Row 1: Content Knowledge -->
+                        <tr class="rubric-row" id="criteria-row-0">
+                            <td class="p-4 font-medium border-b border-gray-200">
+                                <div class="criteria-name" data-criteria="0">Content Knowledge</div>
+                            </td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="0" data-col="0">Limited</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="0" data-col="1">Basic</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="0" data-col="2">Proficient</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="0" data-col="3">Advanced</td>
+                        </tr>
+                        <tr class="description-row" id="description-row-0">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                                <div class="text-sm text-blue-800">
+                                    <p><strong>Content Knowledge:</strong> Evaluates the student's understanding and mastery of subject matter. This includes accuracy of information, depth of knowledge, and ability to apply concepts appropriately.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="level-description-row" id="level-description-row-0">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="text-sm text-indigo-800 font-medium">
+                                    <p id="level-description-text-0"></p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="feedback-row" id="feedback-row-0">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="flex items-center">
+                                    <label class="font-medium text-indigo-700 mr-3">Feedback:</label>
+                                    <textarea class="w-full p-2 border border-indigo-200 rounded-md focus:ring focus:ring-indigo-200 focus:outline-none" placeholder="Add specific feedback for Content Knowledge..."></textarea>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Row 2: Organization -->
+                        <tr class="rubric-row" id="criteria-row-1">
+                            <td class="p-4 font-medium border-b border-gray-200">
+                                <div class="criteria-name" data-criteria="1">Organization</div>
+                            </td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="1" data-col="0">Disorganized</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="1" data-col="1">Somewhat Organized</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="1" data-col="2">Well Organized</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="1" data-col="3">Exceptionally Organized</td>
+                        </tr>
+                        <tr class="description-row" id="description-row-1">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                                <div class="text-sm text-blue-800">
+                                    <p><strong>Organization:</strong> Assesses how well the student structures information and ideas. This includes logical sequencing, clear transitions, and coherent arrangement of content to support understanding.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="level-description-row" id="level-description-row-1">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="text-sm text-indigo-800 font-medium">
+                                    <p id="level-description-text-1"></p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="feedback-row" id="feedback-row-1">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="flex items-center">
+                                    <label class="font-medium text-indigo-700 mr-3">Feedback:</label>
+                                    <textarea class="w-full p-2 border border-indigo-200 rounded-md focus:ring focus:ring-indigo-200 focus:outline-none" placeholder="Add specific feedback for Organization..."></textarea>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Row 3: Communication -->
+                        <tr class="rubric-row" id="criteria-row-2">
+                            <td class="p-4 font-medium border-b border-gray-200">
+                                <div class="criteria-name" data-criteria="2">Communication</div>
+                            </td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="2" data-col="0">Unclear</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="2" data-col="1">Somewhat Clear</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="2" data-col="2">Clear</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="2" data-col="3">Exceptionally Clear</td>
+                        </tr>
+                        <tr class="description-row" id="description-row-2">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                                <div class="text-sm text-blue-800">
+                                    <p><strong>Communication:</strong> Evaluates how effectively the student conveys ideas. This includes clarity of expression, appropriate language use, and the ability to articulate concepts in a way that others can understand.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="level-description-row" id="level-description-row-2">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="text-sm text-indigo-800 font-medium">
+                                    <p id="level-description-text-2"></p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="feedback-row" id="feedback-row-2">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="flex items-center">
+                                    <label class="font-medium text-indigo-700 mr-3">Feedback:</label>
+                                    <textarea class="w-full p-2 border border-indigo-200 rounded-md focus:ring focus:ring-indigo-200 focus:outline-none" placeholder="Add specific feedback for Communication..."></textarea>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Row 4: Creativity -->
+                        <tr class="rubric-row" id="criteria-row-3">
+                            <td class="p-4 font-medium border-b border-gray-200">
+                                <div class="criteria-name" data-criteria="3">Creativity</div>
+                            </td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="3" data-col="0">Minimal</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="3" data-col="1">Developing</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="3" data-col="2">Creative</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="3" data-col="3">Highly Creative</td>
+                        </tr>
+                        <tr class="description-row" id="description-row-3">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                                <div class="text-sm text-blue-800">
+                                    <p><strong>Creativity:</strong> Assesses the student's originality and innovative thinking. This includes novel approaches to problems, unique perspectives, and imaginative solutions that go beyond conventional thinking.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="level-description-row" id="level-description-row-3">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="text-sm text-indigo-800 font-medium">
+                                    <p id="level-description-text-3"></p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="feedback-row" id="feedback-row-3">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="flex items-center">
+                                    <label class="font-medium text-indigo-700 mr-3">Feedback:</label>
+                                    <textarea class="w-full p-2 border border-indigo-200 rounded-md focus:ring focus:ring-indigo-200 focus:outline-none" placeholder="Add specific feedback for Creativity..."></textarea>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Row 5: Collaboration -->
+                        <tr class="rubric-row" id="criteria-row-4">
+                            <td class="p-4 font-medium border-b border-gray-200">
+                                <div class="criteria-name" data-criteria="4">Collaboration</div>
+                            </td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="4" data-col="0">Limited</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="4" data-col="1">Adequate</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="4" data-col="2">Effective</td>
+                            <td class="p-4 text-center border-b border-gray-200 rating-cell" data-row="4" data-col="3">Exceptional</td>
+                        </tr>
+                        <tr class="description-row" id="description-row-4">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                                <div class="text-sm text-blue-800">
+                                    <p><strong>Collaboration:</strong> Evaluates how well the student works with others. This includes active participation in group work, respectful engagement with peers, contribution to shared goals, and ability to incorporate others' perspectives.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="level-description-row" id="level-description-row-4">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="text-sm text-indigo-800 font-medium">
+                                    <p id="level-description-text-4"></p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="feedback-row" id="feedback-row-4">
+                            <td colspan="5" class="px-4 py-3 border-b border-gray-200 bg-indigo-50">
+                                <div class="flex items-center">
+                                    <label class="font-medium text-indigo-700 mr-3">Feedback:</label>
+                                    <textarea class="w-full p-2 border border-indigo-200 rounded-md focus:ring focus:ring-indigo-200 focus:outline-none" placeholder="Add specific feedback for Collaboration..."></textarea>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-6 flex justify-between items-center">
+                <div class="text-gray-700">
+                    <span class="font-semibold">Total Score:</span> <span id="total-score">0</span> / 20
+                </div>
+                <div class="flex flex-col items-end">
+                    <div>
+                        <button id="reset-btn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-700 transition-colors">Reset</button>
+                        <button id="save-btn" class="ml-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white transition-colors">Save Rubric</button>
+                    </div>
+                    <div id="error-message" class="error-message"></div>
+                    <div id="success-message" class="success-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for displaying assessment summary -->
+    <div id="save-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold text-indigo-800 mb-4">Assessment Summary</h2>
+            
+            <div class="bg-gray-50 p-4 rounded-md mb-4">
+                <div class="mb-2"><strong>Student Name:</strong> <span id="modal-student-name"></span></div>
+                <div class="mb-2"><strong>Total Score:</strong> <span id="modal-total-score"></span>/20</div>
+                
+                <div class="mt-4 mb-2"><strong>Individual Ratings:</strong></div>
+                <ul class="list-disc pl-5 mb-4" id="modal-ratings-list"></ul>
+                
+                <div class="mt-4 mb-2"><strong>Feedback Comments:</strong></div>
+                <div id="modal-feedback" class="text-sm"></div>
+            </div>
+            
+            <div class="flex justify-between">
+                <button id="finalize-btn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white transition-colors">Finalize</button>
+                <button id="close-modal-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ratingCells = document.querySelectorAll('.rating-cell');
+            const totalScoreElement = document.getElementById('total-score');
+            const cornerScoreElement = document.getElementById('corner-score');
+            const resetBtn = document.getElementById('reset-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const feedbackRows = document.querySelectorAll('.feedback-row');
+            const studentNameInput = document.getElementById('student-name');
+            const saveModal = document.getElementById('save-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const finalizeBtn = document.getElementById('finalize-btn');
+            const criteriaNames = document.querySelectorAll('.criteria-name');
+            const errorMessageElement = document.getElementById('error-message');
+            const successMessageElement = document.getElementById('success-message');
+            const rubricContainer = document.getElementById('rubric-container');
+            
+            // Track which description rows are visible
+            const descriptionVisibility = [false, false, false, false, false];
+            
+            // Criteria names for display
+            const criteriaLabels = [
+                "Content Knowledge",
+                "Organization",
+                "Communication",
+                "Creativity",
+                "Collaboration"
+            ];
+            
+            // Rating level descriptions
+            const ratingLevels = [
+                ["Limited", "Basic", "Proficient", "Advanced"],
+                ["Disorganized", "Somewhat Organized", "Well Organized", "Exceptionally Organized"],
+                ["Unclear", "Somewhat Clear", "Clear", "Exceptionally Clear"],
+                ["Minimal", "Developing", "Creative", "Highly Creative"],
+                ["Limited", "Adequate", "Effective", "Exceptional"]
+            ];
+            
+            // Detailed level descriptions for each criteria and level
+            const levelDescriptions = [
+                // Content Knowledge descriptions
+                [
+                    "Limited: Shows minimal understanding of core concepts. Contains significant factual errors or misconceptions. Unable to apply knowledge to relevant contexts.",
+                    "Basic: Demonstrates fundamental understanding of key concepts. Contains minor factual errors. Limited application of knowledge to new situations.",
+                    "Proficient: Shows solid understanding of subject matter. Information is accurate and complete. Successfully applies knowledge to appropriate contexts.",
+                    "Advanced: Demonstrates comprehensive and nuanced understanding. Information is precise, thorough, and insightful. Skillfully applies knowledge to complex situations."
+                ],
+                // Organization descriptions
+                [
+                    "Disorganized: Information is presented in a confusing manner. Lacks logical structure or sequence. Ideas appear disconnected or random.",
+                    "Somewhat Organized: Basic structure is present but inconsistent. Some logical progression of ideas. Transitions between sections may be abrupt.",
+                    "Well Organized: Clear and logical structure. Ideas flow naturally from one to the next. Effective transitions between sections.",
+                    "Exceptionally Organized: Sophisticated structure enhances understanding. Perfect logical flow with seamless transitions. Organization itself contributes to the effectiveness of the work."
+                ],
+                // Communication descriptions
+                [
+                    "Unclear: Ideas are difficult to understand. Language is imprecise or inappropriate. Frequent errors in grammar, spelling, or mechanics.",
+                    "Somewhat Clear: Ideas are generally understandable but may require effort to interpret. Language is basic. Some errors in grammar, spelling, or mechanics.",
+                    "Clear: Ideas are expressed effectively. Language is appropriate and precise. Few errors in grammar, spelling, or mechanics.",
+                    "Exceptionally Clear: Ideas are expressed with remarkable clarity and precision. Language is sophisticated yet accessible. Virtually error-free."
+                ],
+                // Creativity descriptions
+                [
+                    "Minimal: Relies entirely on conventional approaches. Shows little original thinking. Follows established patterns without variation.",
+                    "Developing: Shows some evidence of original thinking. Attempts to move beyond conventional approaches in limited ways.",
+                    "Creative: Demonstrates original thinking and novel approaches. Presents unique perspectives or solutions to problems.",
+                    "Highly Creative: Exceptional originality and innovation. Transforms conventional thinking with unique insights. Creates new and valuable approaches."
+                ],
+                // Collaboration descriptions
+                [
+                    "Limited: Minimal participation in group activities. Rarely contributes ideas. May disrupt group dynamics or fail to complete assigned tasks.",
+                    "Adequate: Participates in group activities when prompted. Completes assigned tasks. Listens to others' ideas but may not integrate them.",
+                    "Effective: Actively participates in group work. Contributes valuable ideas. Respectfully engages with others and incorporates their perspectives.",
+                    "Exceptional: Takes leadership role when appropriate. Elevates group performance through contributions. Skillfully integrates diverse perspectives and facilitates consensus."
+                ]
+            ];
+            
+            // Store selected ratings and feedback
+            const selectedRatings = [null, null, null, null, null];
+            const feedbackTexts = ['', '', '', '', ''];
+            
+            // Store current assessment data for finalization
+            let currentAssessmentData = null;
+            
+            // Add click event to all rating cells
+            ratingCells.forEach(cell => {
+                cell.addEventListener('click', function() {
+                    const row = parseInt(this.dataset.row);
+                    const col = parseInt(this.dataset.col);
+                    
+                    // Clear previous selection in this row
+                    document.querySelectorAll(`.rating-cell[data-row="${row}"]`).forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                    
+                    // Select this cell
+                    this.classList.add('selected');
+                    
+                    // Update selected rating
+                    selectedRatings[row] = col + 1;
+                    
+                    // Show level description for this rating
+                    showLevelDescription(row, col);
+                    
+                    // Show feedback row for this criterion
+                    showFeedbackRow(row);
+                    
+                    // Update total score
+                    updateTotalScore();
+                });
+            });
+            
+            // Add click event to criteria names for toggling descriptions
+            criteriaNames.forEach(criteria => {
+                criteria.addEventListener('click', function() {
+                    const criteriaIndex = parseInt(this.dataset.criteria);
+                    toggleDescriptionRow(criteriaIndex);
+                });
+            });
+            
+            // Toggle description row visibility
+            function toggleDescriptionRow(index) {
+                const descriptionRow = document.getElementById(`description-row-${index}`);
+                
+                if (descriptionVisibility[index]) {
+                    // Hide description
+                    descriptionRow.classList.remove('visible');
+                } else {
+                    // Show description
+                    descriptionRow.classList.add('visible');
+                }
+                
+                // Toggle visibility state
+                descriptionVisibility[index] = !descriptionVisibility[index];
+            }
+            
+            // Show level description for a specific rating
+            function showLevelDescription(rowIndex, colIndex) {
+                const levelDescriptionRow = document.getElementById(`level-description-row-${rowIndex}`);
+                const levelDescriptionText = document.getElementById(`level-description-text-${rowIndex}`);
+                
+                // Set the description text
+                levelDescriptionText.textContent = levelDescriptions[rowIndex][colIndex];
+                
+                // Show the description row
+                levelDescriptionRow.classList.add('visible');
+            }
+            
+            // Show feedback row for a specific criterion
+            function showFeedbackRow(rowIndex) {
+                const feedbackRow = document.getElementById(`feedback-row-${rowIndex}`);
+                feedbackRow.classList.add('visible');
+                
+                // Save feedback text when it changes
+                const textarea = feedbackRow.querySelector('textarea');
+                textarea.value = feedbackTexts[rowIndex]; // Restore any previously entered feedback
+                
+                textarea.addEventListener('input', function() {
+                    feedbackTexts[rowIndex] = this.value;
+                });
+            }
+            
+            // Reset button - modified to preserve feedback
+            resetBtn.addEventListener('click', function() {
+                // Clear all selections
+                ratingCells.forEach(cell => {
+                    cell.classList.remove('selected');
+                });
+                
+                // Reset ratings
+                for (let i = 0; i < selectedRatings.length; i++) {
+                    selectedRatings[i] = null;
+                }
+                
+                // Hide all level description rows
+                document.querySelectorAll('.level-description-row').forEach(row => {
+                    row.classList.remove('visible');
+                });
+                
+                // Check each feedback row - only hide if empty
+                for (let i = 0; i < feedbackTexts.length; i++) {
+                    const textarea = document.querySelector(`#feedback-row-${i} textarea`);
+                    const feedbackRow = document.getElementById(`feedback-row-${i}`);
+                    
+                    // If there's text in the feedback, keep it visible and preserve the text
+                    if (textarea && textarea.value.trim() !== '') {
+                        feedbackRow.classList.add('visible');
+                        feedbackTexts[i] = textarea.value; // Ensure the text is saved in our array
+                    } else {
+                        // If empty, hide the feedback row
+                        feedbackRow.classList.remove('visible');
+                        feedbackTexts[i] = '';
+                    }
+                }
+                
+                // Clear student name
+                studentNameInput.value = '';
+                
+                // Update total score
+                updateTotalScore();
+                
+                // Clear any error or success messages
+                hideErrorMessage();
+                hideSuccessMessage();
+                
+                // Note: We do NOT reset the description visibility - they remain as they were
+            });
+            
+            // Save button with missing criteria validation and clipboard functionality
+            saveBtn.addEventListener('click', function() {
+                // Check if student name is provided
+                const studentName = studentNameInput.value.trim();
+                if (!studentName) {
+                    showErrorMessage("Please enter a student name.");
+                    studentNameInput.focus();
+                    return;
+                }
+                
+                // Check which criteria are missing ratings
+                const missingCriteria = [];
+                for (let i = 0; i < selectedRatings.length; i++) {
+                    if (selectedRatings[i] === null) {
+                        missingCriteria.push(criteriaLabels[i]);
+                    }
+                }
+                
+                if (missingCriteria.length > 0) {
+                    // Show error message with missing criteria
+                    const missingMessage = missingCriteria.map(name => `${name} Missing!`).join(' ');
+                    showErrorMessage(missingMessage);
+                    
+                    // Highlight the missing criteria rows
+                    missingCriteria.forEach((name, index) => {
+                        const criteriaIndex = criteriaLabels.indexOf(name);
+                        if (criteriaIndex !== -1) {
+                            const row = document.getElementById(`criteria-row-${criteriaIndex}`);
+                            row.classList.add('highlight-missing');
+                            
+                            // Remove the highlight class after animation completes
+                            setTimeout(() => {
+                                row.classList.remove('highlight-missing');
+                            }, 1500);
+                        }
+                    });
+                    
+                    return;
+                }
+                
+                // All criteria have been rated, proceed with saving
+                const totalScore = calculateTotalScore();
+                
+                // Copy the total score to clipboard
+                copyToClipboard(totalScore.toString());
+                
+                // Show success message
+                showSuccessMessage(`Score ${totalScore} copied to clipboard!`);
+                
+                // Store the current assessment data
+                currentAssessmentData = {
+                    studentName: studentName,
+                    ratings: [...selectedRatings], // Create a copy of the array
+                    feedback: [...feedbackTexts], // Create a copy of the array
+                    totalScore: totalScore
+                };
+                
+                // Display the assessment summary
+                showSummaryModal(currentAssessmentData);
+            });
+            
+            // Finalize button - replace the rubric with a finalized view
+            finalizeBtn.addEventListener('click', function() {
+                if (!currentAssessmentData) return;
+                
+                // Close the modal
+                saveModal.classList.remove('visible');
+                
+                // Create the finalized view
+                createFinalizedView(currentAssessmentData);
+            });
+            
+            // Create finalized view
+            function createFinalizedView(data) {
+                // Get score color based on total score
+                let scoreColor = '#4f46e5'; // Default indigo
+                if (data.totalScore >= 16) {
+                    scoreColor = '#10B981'; // Green for high scores
+                } else if (data.totalScore >= 10) {
+                    scoreColor = '#4f46e5'; // Default indigo for medium scores
+                } else {
+                    scoreColor = '#F59E0B'; // Amber for low scores
+                }
+                
+                // Create the finalized HTML
+                const finalizedHTML = `
+                    <div class="finalized-view p-6">
+                        <div class="p-6 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center">
+                            <div>
+                                <h1 class="text-2xl font-bold">Assessment Report</h1>
+                                <p class="text-indigo-100 mt-1">Finalized Rubric</p>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="mr-4 font-semibold text-white">
+                                    <span class="text-lg">${data.studentName}</span>
+                                </div>
+                                <div style="background-color: ${scoreColor}" class="px-4 py-2 rounded-lg text-white font-bold text-xl">
+                                    ${data.totalScore}/20
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6 bg-white rounded-b-lg shadow-md">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-800 mb-4">Criteria Ratings</h2>
+                                    <div class="space-y-4">
+                                        ${data.ratings.map((rating, index) => {
+                                            const ratingText = ratingLevels[index][rating - 1];
+                                            return `
+                                                <div class="p-3 bg-gray-50 rounded-lg">
+                                                    <div class="flex justify-between items-center mb-2">
+                                                        <span class="font-medium text-gray-700">${criteriaLabels[index]}</span>
+                                                        <span class="rating-badge rating-${rating}">${rating}/4 - ${ratingText}</span>
+                                                    </div>
+                                                    <p class="text-sm text-gray-600 mt-1">${levelDescriptions[index][rating-1].split(': ')[1]}</p>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-800 mb-4">Feedback</h2>
+                                    <div class="space-y-4">
+                                        ${data.feedback.map((feedback, index) => {
+                                            if (feedback.trim()) {
+                                                return `
+                                                    <div class="feedback-card">
+                                                        <h3 class="font-semibold text-indigo-700">${criteriaLabels[index]}</h3>
+                                                        <p class="text-gray-700 mt-1">${feedback}</p>
+                                                    </div>
+                                                `;
+                                            } else {
+                                                return `
+                                                    <div class="feedback-card opacity-50">
+                                                        <h3 class="font-semibold text-indigo-700">${criteriaLabels[index]}</h3>
+                                                        <p class="text-gray-500 mt-1 italic">No feedback provided</p>
+                                                    </div>
+                                                `;
+                                            }
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 pt-6 border-t border-gray-200">
+                                <div class="flex justify-end">
+                                    <button id="edit-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white transition-colors">
+                                        Edit Assessment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Replace the rubric container content
+                rubricContainer.innerHTML = finalizedHTML;
+                
+                // Add event listener to the edit button
+                document.getElementById('edit-btn').addEventListener('click', function() {
+                    // Reload the page to start over
+                    window.location.reload();
+                });
+            }
+            
+            // Copy text to clipboard
+            function copyToClipboard(text) {
+                // Create a temporary textarea element
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'absolute';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                
+                // Select and copy the text
+                textarea.select();
+                document.execCommand('copy');
+                
+                // Remove the temporary element
+                document.body.removeChild(textarea);
+            }
+            
+            // Show error message
+            function showErrorMessage(message) {
+                // Hide any success message first
+                hideSuccessMessage();
+                
+                // Show error message
+                errorMessageElement.textContent = message;
+                errorMessageElement.classList.add('visible');
+                
+                // Hide the message after 3 seconds
+                setTimeout(hideErrorMessage, 3000);
+            }
+            
+            // Hide error message
+            function hideErrorMessage() {
+                errorMessageElement.textContent = '';
+                errorMessageElement.classList.remove('visible');
+            }
+            
+            // Show success message
+            function showSuccessMessage(message) {
+                // Hide any error message first
+                hideErrorMessage();
+                
+                // Show success message
+                successMessageElement.textContent = message;
+                successMessageElement.classList.add('visible');
+                
+                // Hide the message after 3 seconds
+                setTimeout(hideSuccessMessage, 3000);
+            }
+            
+            // Hide success message
+            function hideSuccessMessage() {
+                successMessageElement.textContent = '';
+                successMessageElement.classList.remove('visible');
+            }
+            
+            // Show summary modal with data
+            function showSummaryModal(data) {
+                // Populate modal with data
+                document.getElementById('modal-student-name').textContent = data.studentName;
+                document.getElementById('modal-total-score').textContent = data.totalScore;
+                
+                // Populate ratings list
+                const ratingsList = document.getElementById('modal-ratings-list');
+                ratingsList.innerHTML = '';
+                
+                for (let i = 0; i < data.ratings.length; i++) {
+                    const li = document.createElement('li');
+                    const ratingValue = data.ratings[i];
+                    const ratingText = ratingLevels[i][ratingValue - 1];
+                    li.textContent = `${criteriaLabels[i]}: ${ratingValue}/4 (${ratingText})`;
+                    ratingsList.appendChild(li);
+                }
+                
+                // Populate feedback
+                const feedbackDiv = document.getElementById('modal-feedback');
+                feedbackDiv.innerHTML = '';
+                
+                let hasFeedback = false;
+                for (let i = 0; i < data.feedback.length; i++) {
+                    if (data.feedback[i].trim()) {
+                        hasFeedback = true;
+                        const feedbackItem = document.createElement('div');
+                        feedbackItem.classList.add('mb-3', 'p-2', 'bg-white', 'rounded');
+                        feedbackItem.innerHTML = `<strong>${criteriaLabels[i]}:</strong> ${data.feedback[i]}`;
+                        feedbackDiv.appendChild(feedbackItem);
+                    }
+                }
+                
+                // If no feedback was provided, show a message
+                if (!hasFeedback) {
+                    feedbackDiv.innerHTML = '<p class="italic text-gray-500">No feedback provided.</p>';
+                }
+                
+                // Show modal
+                saveModal.classList.add('visible');
+            }
+            
+            // Close modal button
+            closeModalBtn.addEventListener('click', function() {
+                saveModal.classList.remove('visible');
+            });
+            
+            // Calculate total score
+            function calculateTotalScore() {
+                let total = 0;
+                selectedRatings.forEach(rating => {
+                    if (rating !== null) {
+                        total += rating;
+                    }
+                });
+                return total;
+            }
+            
+            // Update total score displays
+            function updateTotalScore() {
+                const total = calculateTotalScore();
+                
+                // Update both score displays
+                totalScoreElement.textContent = total;
+                cornerScoreElement.textContent = total;
+                
+                // Change color based on score
+                const scoreDisplay = document.querySelector('.score-display');
+                if (total >= 16) {
+                    scoreDisplay.style.backgroundColor = '#10B981'; // Green for high scores
+                } else if (total >= 10) {
+                    scoreDisplay.style.backgroundColor = '#4f46e5'; // Default indigo for medium scores
+                } else if (total > 0) {
+                    scoreDisplay.style.backgroundColor = '#F59E0B'; // Amber for low scores
+                } else {
+                    scoreDisplay.style.backgroundColor = '#4f46e5'; // Default indigo when no selections
+                }
+            }
+            
+            // Initialize event listeners for all textareas to save feedback as it's entered
+            document.querySelectorAll('.feedback-row textarea').forEach((textarea, index) => {
+                textarea.addEventListener('input', function() {
+                    feedbackTexts[index] = this.value;
+                });
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'962b4bd674c05e70',t:'MTc1MzEwNzE3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
