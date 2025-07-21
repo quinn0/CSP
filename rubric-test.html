@@ -6,6 +6,7 @@
     <title>Interactive Rubric</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* General styling for the rubric rows and cells */
         .rubric-row:nth-child(odd) {
             background-color: rgba(243, 244, 246, 0.5);
         }
@@ -26,6 +27,7 @@
             font-weight: 600;
         }
         
+        /* Top bar for student name and score */
         .top-bar {
             position: absolute;
             top: 1rem;
@@ -53,34 +55,18 @@
             font-weight: 600;
         }
         
-        .feedback-row {
+        /* Styling for expandable feedback and description rows */
+        .feedback-row, .description-row, .level-description-row {
             display: none;
             transition: all 0.3s ease;
             overflow: hidden;
         }
         
-        .feedback-row.visible {
+        .feedback-row.visible, .description-row.visible, .level-description-row.visible {
             display: table-row;
         }
-        
-        .description-row {
-            display: none;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        
-        .description-row.visible {
-            display: table-row;
-        }
-        
-        .level-description-row {
-            display: none;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        
+
         .level-description-row.visible {
-            display: table-row;
             animation: fadeIn 0.3s ease-in-out;
         }
         
@@ -89,6 +75,7 @@
             min-height: 80px;
         }
         
+        /* Modal styling for the summary pop-up */
         .modal {
             display: none;
             position: fixed;
@@ -116,6 +103,7 @@
             overflow-y: auto;
         }
         
+        /* Criteria name styling for info icon */
         .criteria-name {
             cursor: pointer;
             display: flex;
@@ -133,7 +121,8 @@
             color: #6366f1;
         }
         
-        .error-message {
+        /* Error and success message styling */
+        .error-message, .success-message {
             color: #dc2626;
             font-weight: 600;
             margin-top: 0.5rem;
@@ -141,20 +130,16 @@
             transition: opacity 0.3s ease;
             text-align: right;
         }
-        
+
         .success-message {
             color: #10B981;
-            font-weight: 600;
-            margin-top: 0.5rem;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            text-align: right;
         }
         
         .error-message.visible, .success-message.visible {
             opacity: 1;
         }
         
+        /* Animation for highlighting missing selections */
         .highlight-missing {
             animation: pulse 1.5s ease-in-out;
         }
@@ -165,6 +150,7 @@
             100% { background-color: rgba(239, 68, 68, 0); }
         }
         
+        /* Animation for the finalized view */
         .finalized-view {
             animation: fadeIn 0.5s ease-in-out;
         }
@@ -174,6 +160,7 @@
             to { opacity: 1; }
         }
         
+        /* Styling for rating badges in the summary */
         .rating-badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -188,6 +175,7 @@
         .rating-3 { background-color: #3B82F6; }
         .rating-4 { background-color: #10B981; }
         
+        /* Styling for feedback cards in the summary */
         .feedback-card {
             border-left: 4px solid #4f46e5;
             padding-left: 1rem;
@@ -429,6 +417,7 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Get all interactive elements from the DOM
             const ratingCells = document.querySelectorAll('.rating-cell');
             const totalScoreElement = document.getElementById('total-score');
             const cornerScoreElement = document.getElementById('corner-score');
@@ -443,23 +432,21 @@
             const errorMessageElement = document.getElementById('error-message');
             const successMessageElement = document.getElementById('success-message');
             const rubricContainer = document.getElementById('rubric-container');
-            const rubricTable = document.getElementById('rubric-table'); // Get the table element
-            const editBtn = document.getElementById('edit-btn'); // Edit button
-            const saveChangesBtn = document.getElementById('save-changes-btn'); // Save Changes button
+            const rubricTable = document.getElementById('rubric-table');
+            const editBtn = document.getElementById('edit-btn');
+            const saveChangesBtn = document.getElementById('save-changes-btn');
 
-            // Track which description rows are visible
+            // --- Data and State Management ---
+
+            // Track visibility of criteria description rows
             const descriptionVisibility = [false, false, false, false, false];
 
-            // Criteria names for display
+            // Labels for each criterion
             const criteriaLabels = [
-                "Content Knowledge",
-                "Organization",
-                "Communication",
-                "Creativity",
-                "Collaboration"
+                "Content Knowledge", "Organization", "Communication", "Creativity", "Collaboration"
             ];
 
-            // Rating level descriptions
+            // Labels for each rating level within a criterion
             const ratingLevels = [
                 ["Limited", "Basic", "Proficient", "Advanced"],
                 ["Disorganized", "Somewhat Organized", "Well Organized", "Exceptionally Organized"],
@@ -468,7 +455,7 @@
                 ["Limited", "Adequate", "Effective", "Exceptional"]
             ];
 
-            // Detailed level descriptions for each criteria and level
+            // Detailed descriptions for each performance level
             const levelDescriptions = [
                 [
                     "Demonstrates very limited understanding of the subject matter. Information is often inaccurate or irrelevant.",
@@ -502,286 +489,263 @@
                 ]
             ];
 
-            // Stores the selected rating for each criterion (0-3, or null if not selected)
-            const selectedRatings = Array(criteriaLabels.length).fill(null);
-            // Stores the feedback text for each criterion
-            const feedbackTexts = Array(criteriaLabels.length).fill('');
+            // State arrays to store user input
+            let selectedRatings = Array(criteriaLabels.length).fill(null);
+            let feedbackTexts = Array(criteriaLabels.length).fill('');
 
-            // Function to calculate and update the total score
+            // --- Core Functions ---
+
+            // Calculate and update the total score display
             function updateScore() {
-                let totalScore = 0;
-                selectedRatings.forEach(rating => {
-                    if (rating !== null) {
-                        totalScore += (rating + 1); // Levels are 1-4, so add 1 to 0-3 index
-                    }
-                });
+                const totalScore = selectedRatings.reduce((sum, rating) => {
+                    return sum + (rating !== null ? rating + 1 : 0);
+                }, 0);
                 totalScoreElement.textContent = totalScore;
                 cornerScoreElement.textContent = totalScore;
             }
 
-            // Function to reset the rubric to its initial state
+            // Reset the entire rubric to its initial state
             function resetRubric() {
-                selectedRatings.fill(null); // Reset all selected ratings
-                feedbackTexts.fill(''); // Clear all feedback texts
-                updateScore(); // Update the displayed score
+                selectedRatings.fill(null);
+                feedbackTexts.fill('');
+                updateScore();
 
-                // Remove 'selected' class from all cells
-                ratingCells.forEach(cell => {
-                    cell.classList.remove('selected');
-                });
-
-                // Hide all feedback rows and clear textareas
+                ratingCells.forEach(cell => cell.classList.remove('selected'));
                 feedbackRows.forEach(row => {
                     row.classList.remove('visible');
                     row.querySelector('textarea').value = '';
                 });
-
-                // Hide all level description rows and clear their text
-                document.querySelectorAll('.level-description-row').forEach(row => {
+                document.querySelectorAll('.level-description-row, .description-row').forEach((row, index) => {
                     row.classList.remove('visible');
-                    row.querySelector('p').textContent = '';
+                    if(row.classList.contains('level-description-row')) row.querySelector('p').textContent = '';
+                    if(row.classList.contains('description-row')) descriptionVisibility[index % 5] = false;
                 });
 
-                // Hide all general description rows
-                document.querySelectorAll('.description-row').forEach((row, index) => {
-                    row.classList.remove('visible');
-                    descriptionVisibility[index] = false;
-                });
-
-                studentNameInput.value = ''; // Clear student name
+                studentNameInput.value = '';
                 hideMessage(errorMessageElement);
                 hideMessage(successMessageElement);
                 rubricContainer.classList.remove('finalized-view');
-                enableRubricInteraction(); // Re-enable interactions
-                editBtn.classList.remove('hidden'); // Ensure Edit button is visible
-                saveChangesBtn.classList.add('hidden'); // Ensure Save Changes button is hidden
-                setTableEditable(false); // Lock the table text
+                enableRubricInteraction();
+                editBtn.classList.remove('hidden');
+                saveChangesBtn.classList.add('hidden');
+                setTableEditable(false);
             }
 
-            // Function to show a message (error or success)
+            // Show a temporary message (error or success)
             function showMessage(element, message) {
                 element.textContent = message;
                 element.classList.add('visible');
-                setTimeout(() => {
-                    hideMessage(element);
-                }, 5000); // Message disappears after 5 seconds
+                setTimeout(() => hideMessage(element), 5000);
             }
 
-            // Function to hide a message
+            // Hide a message
             function hideMessage(element) {
                 element.classList.remove('visible');
                 element.textContent = '';
             }
 
-            // Function to enable all rubric interactions (selection, feedback, etc.)
+            // Enable all rubric interactions
             function enableRubricInteraction() {
-                ratingCells.forEach(cell => {
-                    cell.style.pointerEvents = 'auto';
-                    cell.style.cursor = 'pointer';
-                });
-                feedbackRows.forEach(row => {
-                    row.querySelector('textarea').readOnly = false;
-                });
-                criteriaNames.forEach(name => {
-                    name.style.pointerEvents = 'auto';
-                    name.style.cursor = 'pointer';
-                });
+                ratingCells.forEach(cell => cell.style.pointerEvents = 'auto');
+                feedbackRows.forEach(row => row.querySelector('textarea').readOnly = false);
+                criteriaNames.forEach(name => name.style.pointerEvents = 'auto');
                 studentNameInput.readOnly = false;
                 saveBtn.disabled = false;
                 resetBtn.disabled = false;
             }
 
-            // Function to disable all rubric interactions
+            // Disable all rubric interactions (for finalized or edit mode)
             function disableRubricInteraction() {
-                ratingCells.forEach(cell => {
-                    cell.style.pointerEvents = 'none';
-                    cell.style.cursor = 'default';
-                });
-                feedbackRows.forEach(row => {
-                    row.querySelector('textarea').readOnly = true;
-                });
-                criteriaNames.forEach(name => {
-                    name.style.pointerEvents = 'none';
-                    name.style.cursor = 'default';
-                });
+                ratingCells.forEach(cell => cell.style.pointerEvents = 'none');
+                feedbackRows.forEach(row => row.querySelector('textarea').readOnly = true);
+                criteriaNames.forEach(name => name.style.pointerEvents = 'none');
                 studentNameInput.readOnly = true;
                 saveBtn.disabled = true;
                 resetBtn.disabled = true;
             }
 
-            // Function to make table cells editable or read-only
+            // Make table cells content-editable for rubric customization
             function setTableEditable(isEditable) {
-                const cells = rubricTable.querySelectorAll('td, th'); // Select all table data and header cells
+                const cells = rubricTable.querySelectorAll('td, th');
                 cells.forEach(cell => {
-                    // Exclude the feedback textareas as they are handled separately
                     if (!cell.querySelector('textarea')) {
-                        if (isEditable) {
-                            cell.setAttribute('contenteditable', 'true');
-                            cell.classList.add('border-dashed', 'border-2', 'border-blue-300'); // Add visual cue for edit mode
-                        } else {
-                            cell.removeAttribute('contenteditable');
-                            cell.classList.remove('border-dashed', 'border-2', 'border-blue-300'); // Remove visual cue
-                        }
+                        cell.setAttribute('contenteditable', isEditable);
+                        cell.classList.toggle('border-dashed', isEditable);
+                        cell.classList.toggle('border-2', isEditable);
+                        cell.classList.toggle('border-blue-300', isEditable);
                     }
                 });
             }
 
-            // Event listener for "Edit" button
+            // --- Event Listeners ---
+
+            // Edit button: Makes rubric text editable
             editBtn.addEventListener('click', function() {
-                setTableEditable(true); // Make table text editable
-                editBtn.classList.add('hidden'); // Hide Edit button
-                saveChangesBtn.classList.remove('hidden'); // Show Save Changes button
-                // Optionally, disable other rubric interactions if editing text
+                setTableEditable(true);
+                editBtn.classList.add('hidden');
+                saveChangesBtn.classList.remove('hidden');
                 disableRubricInteraction();
-                // Re-enable feedback textareas specifically
-                feedbackRows.forEach(row => {
-                    row.querySelector('textarea').readOnly = false;
-                });
+                feedbackRows.forEach(row => row.querySelector('textarea').readOnly = false);
             });
 
-            // Event listener for "Save Changes" button
+            // Save Changes button: Locks rubric text
             saveChangesBtn.addEventListener('click', function() {
-                setTableEditable(false); // Lock table text
-                editBtn.classList.remove('hidden'); // Show Edit button
-                saveChangesBtn.classList.add('hidden'); // Hide Save Changes button
-                // Re-enable all rubric interactions
+                setTableEditable(false);
+                editBtn.classList.remove('hidden');
+                saveChangesBtn.classList.add('hidden');
                 enableRubricInteraction();
             });
 
-            // Event listeners for rating cells
+            // Rating cells: Handle selection and scoring
             ratingCells.forEach(cell => {
                 cell.addEventListener('click', function() {
-                    if (saveChangesBtn.classList.contains('hidden')) { // Only allow selection if not in edit mode
+                    if (saveChangesBtn.classList.contains('hidden')) {
                         const row = parseInt(this.dataset.row);
                         const col = parseInt(this.dataset.col);
 
-                        // Remove 'selected' from all cells in the same row
-                        document.querySelectorAll(`.rubric-row[data-row="${row}"] .rating-cell`).forEach(c => {
-                            c.classList.remove('selected');
-                        });
-
-                        // Add 'selected' to the clicked cell
+                        document.querySelectorAll(`#criteria-row-${row} .rating-cell`).forEach(c => c.classList.remove('selected'));
                         this.classList.add('selected');
-                        selectedRatings[row] = col; // Store the selected rating
+                        selectedRatings[row] = col;
 
-                        updateScore(); // Update the score
-
-                        // Show corresponding feedback row
+                        updateScore();
                         feedbackRows[row].classList.add('visible');
-
-                        // Update level description
-                        const levelDescriptionTextElement = document.getElementById(`level-description-text-${row}`);
-                        levelDescriptionTextElement.textContent = levelDescriptions[row][col];
+                        
+                        document.getElementById(`level-description-text-${row}`).textContent = levelDescriptions[row][col];
                         document.getElementById(`level-description-row-${row}`).classList.add('visible');
-
-                        // Ensure general description is hidden when a level is selected
                         document.getElementById(`description-row-${row}`).classList.remove('visible');
                         descriptionVisibility[row] = false;
                     }
                 });
             });
 
-            // Event listeners for feedback textareas
+            // Feedback textareas: Store input
             feedbackRows.forEach((rowElement, index) => {
-                const textarea = rowElement.querySelector('textarea');
-                textarea.addEventListener('input', function() {
+                rowElement.querySelector('textarea').addEventListener('input', function() {
                     feedbackTexts[index] = this.value;
                 });
             });
 
-            // Event listener for Reset button
+            // Reset button: Calls the reset function
             resetBtn.addEventListener('click', resetRubric);
 
-            // Event listener for Save Rubric button
+            // Save Rubric button: Validates and opens the summary modal
             saveBtn.addEventListener('click', function() {
-                let allCriteriaRated = true;
-                for (let i = 0; i < selectedRatings.length; i++) {
-                    if (selectedRatings[i] === null) {
-                        allCriteriaRated = false;
-                        // Highlight the unrated row
-                        document.getElementById(`criteria-row-${i}`).classList.add('highlight-missing');
-                        setTimeout(() => {
-                            document.getElementById(`criteria-row-${i}`).classList.remove('highlight-missing');
-                        }, 1500);
+                const allCriteriaRated = selectedRatings.every((rating, i) => {
+                    if (rating === null) {
+                        const rowElement = document.getElementById(`criteria-row-${i}`);
+                        rowElement.classList.add('highlight-missing');
+                        setTimeout(() => rowElement.classList.remove('highlight-missing'), 1500);
+                        return false;
                     }
-                }
+                    return true;
+                });
 
                 if (!allCriteriaRated) {
                     showMessage(errorMessageElement, 'Please rate all criteria before saving.');
-                    hideMessage(successMessageElement); // Ensure success message is hidden
                     return;
                 }
 
-                showMessage(successMessageElement, 'Rubric saved successfully!');
-                hideMessage(errorMessageElement); // Ensure error message is hidden
-
-                // Populate modal with summary
+                // Populate and show the summary modal
                 document.getElementById('modal-student-name').textContent = studentNameInput.value || 'N/A';
                 document.getElementById('modal-total-score').textContent = totalScoreElement.textContent;
 
                 const modalRatingsList = document.getElementById('modal-ratings-list');
-                modalRatingsList.innerHTML = ''; // Clear previous list
+                modalRatingsList.innerHTML = '';
                 selectedRatings.forEach((rating, index) => {
                     const listItem = document.createElement('li');
-                    const ratingValue = rating !== null ? ratingLevels[index][rating] : 'Not Rated';
-                    const scoreValue = rating !== null ? (rating + 1) : 0;
-                    const badgeClass = rating !== null ? `rating-${rating + 1}` : '';
+                    const ratingValue = ratingLevels[index][rating];
+                    const scoreValue = rating + 1;
+                    const badgeClass = `rating-${scoreValue}`;
                     listItem.innerHTML = `<strong>${criteriaLabels[index]}:</strong> <span class="rating-badge ${badgeClass}">${ratingValue}</span> (Score: ${scoreValue})`;
                     modalRatingsList.appendChild(listItem);
                 });
 
                 const modalFeedback = document.getElementById('modal-feedback');
-                modalFeedback.innerHTML = ''; // Clear previous feedback
+                modalFeedback.innerHTML = '';
                 feedbackTexts.forEach((feedback, index) => {
-                    if (feedback.trim() !== '') {
+                    if (feedback.trim()) {
                         const feedbackCard = document.createElement('div');
-                        feedbackCard.classList.add('feedback-card', 'p-3', 'bg-gray-100', 'rounded-md', 'mb-2');
-                        feedbackCard.innerHTML = `<p class="font-semibold text-indigo-700">${criteriaLabels[index]}:</p><p>${feedback}</p>`;
+                        feedbackCard.className = 'feedback-card p-3 bg-gray-100 rounded-md mb-2';
+                        feedbackCard.innerHTML = `<p class="font-semibold text-indigo-700">${criteriaLabels[index]}:</p><p>${feedback.replace(/\n/g, '<br>')}</p>`;
                         modalFeedback.appendChild(feedbackCard);
                     }
                 });
 
-                saveModal.classList.add('visible'); // Show the modal
+                saveModal.classList.add('visible');
             });
 
-            // Event listener for closing the modal
-            closeModalBtn.addEventListener('click', function() {
-                saveModal.classList.remove('visible');
-            });
+            // Close Modal button
+            closeModalBtn.addEventListener('click', () => saveModal.classList.remove('visible'));
 
-            // Event listener for Finalize button in modal
+            // **MODIFIED** Finalize button: Replaces the rubric, copies score
             finalizeBtn.addEventListener('click', function() {
+                // --- Copy score to clipboard ---
+                const scoreToCopy = totalScoreElement.textContent;
+                const tempTextArea = document.createElement('textarea');
+                // Hide the textarea from view
+                tempTextArea.style.position = 'absolute';
+                tempTextArea.style.left = '-9999px';
+                tempTextArea.value = scoreToCopy;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                let successfulCopy = false;
+                try {
+                    // Execute the copy command
+                    successfulCopy = document.execCommand('copy');
+                } catch (err) {
+                    console.error('Unable to copy score to clipboard', err);
+                }
+                document.body.removeChild(tempTextArea);
+                // --- End of copy logic ---
+
+                // Clone the summary content from the modal
+                const modalContent = document.querySelector('.modal-content').cloneNode(true);
+
+                // Remove the "Finalize" and "Close" buttons from the cloned content
+                const buttons = modalContent.querySelector('.flex.justify-between');
+                if (buttons) {
+                    buttons.remove();
+                }
+
+                // Replace the entire content of the rubric container with the summary
+                rubricContainer.innerHTML = modalContent.innerHTML;
+
+                // If copy was successful, add a confirmation message to the finalized view
+                if (successfulCopy) {
+                    const copySuccessMessage = document.createElement('div');
+                    copySuccessMessage.textContent = `Score (${scoreToCopy}) copied to clipboard!`;
+                    copySuccessMessage.className = 'mt-4 p-3 bg-green-100 text-green-800 rounded-md text-center font-semibold transition-opacity duration-300';
+                    rubricContainer.appendChild(copySuccessMessage);
+
+                    // Make the message disappear after 3 seconds
+                    setTimeout(() => {
+                        copySuccessMessage.style.opacity = '0';
+                        setTimeout(() => copySuccessMessage.remove(), 300); // Remove after fade out
+                    }, 3000);
+                }
+
+                // Apply new styling to the container to fit the summary content
+                rubricContainer.className = 'max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8 finalized-view';
+                
+                // Hide the modal dialog
                 saveModal.classList.remove('visible');
-                rubricContainer.classList.add('finalized-view');
-                disableRubricInteraction(); // Disable interactions after finalizing
-                showMessage(successMessageElement, 'Rubric finalized!');
             });
 
-            // Event listeners for criteria names to toggle description rows
+            // Criteria names: Toggle general description visibility
             criteriaNames.forEach((criteriaNameElement, index) => {
                 criteriaNameElement.addEventListener('click', function() {
                     const descriptionRow = document.getElementById(`description-row-${index}`);
-                    const levelDescriptionRow = document.getElementById(`level-description-row-${index}`);
-
-                    // Toggle visibility of the general description row
                     descriptionVisibility[index] = !descriptionVisibility[index];
+                    descriptionRow.classList.toggle('visible', descriptionVisibility[index]);
+                    
                     if (descriptionVisibility[index]) {
-                        descriptionRow.classList.add('visible');
-                    } else {
-                        descriptionRow.classList.remove('visible');
-                    }
-
-                    // Hide the level description if the general description is shown
-                    if (descriptionVisibility[index]) {
-                        levelDescriptionRow.classList.remove('visible');
+                        document.getElementById(`level-description-row-${index}`).classList.remove('visible');
                     }
                 });
             });
 
-            // Initial setup: update score and hide messages
+            // Initial setup on page load
             updateScore();
-            hideMessage(errorMessageElement);
-            hideMessage(successMessageElement);
         });
     </script>
 </body>
