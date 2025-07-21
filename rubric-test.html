@@ -212,7 +212,7 @@
         
         <div class="p-6">
             <div class="overflow-x-auto">
-                <table class="w-full border-collapse">
+                <table id="rubric-table" class="w-full border-collapse">
                     <thead>
                         <tr class="bg-indigo-100 text-indigo-800">
                             <th class="p-4 text-left font-semibold border-b-2 border-indigo-200 w-1/4">Criteria</th>
@@ -396,9 +396,12 @@
                     <span class="font-semibold">Total Score:</span> <span id="total-score">0</span> / 20
                 </div>
                 <div class="flex flex-col items-end">
-                    <div>
-                        <button id="reset-btn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-700 transition-colors">Reset</button>
-                        <button id="save-btn" class="ml-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white transition-colors">Save Rubric</button>
+                    <div class="flex">
+                        <!-- Edit and Save Changes buttons added here -->
+                        <button id="edit-btn" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-md text-white transition-colors mr-2">Edit</button>
+                        <button id="save-changes-btn" class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-md text-white transition-colors mr-2 hidden">Save Changes</button>
+                        <button id="reset-btn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-700 transition-colors mr-2">Reset</button>
+                        <button id="save-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white transition-colors">Save Rubric</button>
                     </div>
                     <div id="error-message" class="error-message"></div>
                     <div id="success-message" class="success-message"></div>
@@ -406,30 +409,24 @@
             </div>
         </div>
     </div>
-    
     <!-- Modal for displaying assessment summary -->
     <div id="save-modal" class="modal">
         <div class="modal-content">
             <h2 class="text-xl font-bold text-indigo-800 mb-4">Assessment Summary</h2>
-            
             <div class="bg-gray-50 p-4 rounded-md mb-4">
                 <div class="mb-2"><strong>Student Name:</strong> <span id="modal-student-name"></span></div>
                 <div class="mb-2"><strong>Total Score:</strong> <span id="modal-total-score"></span>/20</div>
-                
                 <div class="mt-4 mb-2"><strong>Individual Ratings:</strong></div>
                 <ul class="list-disc pl-5 mb-4" id="modal-ratings-list"></ul>
-                
                 <div class="mt-4 mb-2"><strong>Feedback Comments:</strong></div>
                 <div id="modal-feedback" class="text-sm"></div>
             </div>
-            
             <div class="flex justify-between">
                 <button id="finalize-btn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white transition-colors">Finalize</button>
                 <button id="close-modal-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white transition-colors">Close</button>
             </div>
         </div>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const ratingCells = document.querySelectorAll('.rating-cell');
@@ -446,10 +443,13 @@
             const errorMessageElement = document.getElementById('error-message');
             const successMessageElement = document.getElementById('success-message');
             const rubricContainer = document.getElementById('rubric-container');
-            
+            const rubricTable = document.getElementById('rubric-table'); // Get the table element
+            const editBtn = document.getElementById('edit-btn'); // Edit button
+            const saveChangesBtn = document.getElementById('save-changes-btn'); // Save Changes button
+
             // Track which description rows are visible
             const descriptionVisibility = [false, false, false, false, false];
-            
+
             // Criteria names for display
             const criteriaLabels = [
                 "Content Knowledge",
@@ -458,7 +458,7 @@
                 "Creativity",
                 "Collaboration"
             ];
-            
+
             // Rating level descriptions
             const ratingLevels = [
                 ["Limited", "Basic", "Proficient", "Advanced"],
@@ -467,513 +467,322 @@
                 ["Minimal", "Developing", "Creative", "Highly Creative"],
                 ["Limited", "Adequate", "Effective", "Exceptional"]
             ];
-            
+
             // Detailed level descriptions for each criteria and level
             const levelDescriptions = [
-                // Content Knowledge descriptions
                 [
-                    "Limited: Shows minimal understanding of core concepts. Contains significant factual errors or misconceptions. Unable to apply knowledge to relevant contexts.",
-                    "Basic: Demonstrates fundamental understanding of key concepts. Contains minor factual errors. Limited application of knowledge to new situations.",
-                    "Proficient: Shows solid understanding of subject matter. Information is accurate and complete. Successfully applies knowledge to appropriate contexts.",
-                    "Advanced: Demonstrates comprehensive and nuanced understanding. Information is precise, thorough, and insightful. Skillfully applies knowledge to complex situations."
+                    "Demonstrates very limited understanding of the subject matter. Information is often inaccurate or irrelevant.",
+                    "Shows basic understanding of core concepts, but may have some inaccuracies or gaps in knowledge.",
+                    "Demonstrates a solid understanding of the subject matter, with accurate information and appropriate application of concepts.",
+                    "Exhibits deep and comprehensive understanding, connecting concepts and applying knowledge in sophisticated ways."
                 ],
-                // Organization descriptions
                 [
-                    "Disorganized: Information is presented in a confusing manner. Lacks logical structure or sequence. Ideas appear disconnected or random.",
-                    "Somewhat Organized: Basic structure is present but inconsistent. Some logical progression of ideas. Transitions between sections may be abrupt.",
-                    "Well Organized: Clear and logical structure. Ideas flow naturally from one to the next. Effective transitions between sections.",
-                    "Exceptionally Organized: Sophisticated structure enhances understanding. Perfect logical flow with seamless transitions. Organization itself contributes to the effectiveness of the work."
+                    "Ideas are presented randomly with no clear structure. Difficult to follow the progression of thought.",
+                    "Some attempt at organization, but transitions are unclear, and the structure may be difficult to follow at times.",
+                    "Ideas are logically sequenced with clear transitions, making the content easy to follow and understand.",
+                    "Presents information with exceptional clarity and logical flow, enhancing the overall impact and coherence."
                 ],
-                // Communication descriptions
                 [
-                    "Unclear: Ideas are difficult to understand. Language is imprecise or inappropriate. Frequent errors in grammar, spelling, or mechanics.",
-                    "Somewhat Clear: Ideas are generally understandable but may require effort to interpret. Language is basic. Some errors in grammar, spelling, or mechanics.",
-                    "Clear: Ideas are expressed effectively. Language is appropriate and precise. Few errors in grammar, spelling, or mechanics.",
-                    "Exceptionally Clear: Ideas are expressed with remarkable clarity and precision. Language is sophisticated yet accessible. Virtually error-free."
+                    "Communication is consistently unclear or difficult to understand, hindering the message.",
+                    "Communication is somewhat clear, but may require effort from the audience to fully grasp the message.",
+                    "Effectively conveys ideas with clarity and precision, using appropriate language and style.",
+                    "Communicates with exceptional clarity, eloquence, and impact, engaging the audience effectively."
                 ],
-                // Creativity descriptions
                 [
-                    "Minimal: Relies entirely on conventional approaches. Shows little original thinking. Follows established patterns without variation.",
-                    "Developing: Shows some evidence of original thinking. Attempts to move beyond conventional approaches in limited ways.",
-                    "Creative: Demonstrates original thinking and novel approaches. Presents unique perspectives or solutions to problems.",
-                    "Highly Creative: Exceptional originality and innovation. Transforms conventional thinking with unique insights. Creates new and valuable approaches."
+                    "Lacks originality; ideas are conventional or directly copied. Shows no evidence of innovative thinking.",
+                    "Shows some emerging signs of originality, but ideas are mostly conventional. Limited innovative approaches.",
+                    "Demonstrates creative thinking through original ideas or unique approaches to problems.",
+                    "Consistently generates highly original and innovative ideas, demonstrating exceptional creativity and imaginative solutions."
                 ],
-                // Collaboration descriptions
                 [
-                    "Limited: Minimal participation in group activities. Rarely contributes ideas. May disrupt group dynamics or fail to complete assigned tasks.",
-                    "Adequate: Participates in group activities when prompted. Completes assigned tasks. Listens to others' ideas but may not integrate them.",
-                    "Effective: Actively participates in group work. Contributes valuable ideas. Respectfully engages with others and incorporates their perspectives.",
-                    "Exceptional: Takes leadership role when appropriate. Elevates group performance through contributions. Skillfully integrates diverse perspectives and facilitates consensus."
+                    "Struggles to work with others; may be uncooperative or disengaged in group activities.",
+                    "Participates adequately in group work, but contributions may be limited or require prompting.",
+                    "Works effectively with peers, contributing actively, respecting diverse perspectives, and supporting group goals.",
+                    "Exemplifies outstanding collaboration, inspiring others, fostering a positive group dynamic, and achieving shared goals exceptionally well."
                 ]
             ];
-            
-            // Store selected ratings and feedback
-            const selectedRatings = [null, null, null, null, null];
-            const feedbackTexts = ['', '', '', '', ''];
-            
-            // Store current assessment data for finalization
-            let currentAssessmentData = null;
-            
-            // Add click event to all rating cells
-            ratingCells.forEach(cell => {
-                cell.addEventListener('click', function() {
-                    const row = parseInt(this.dataset.row);
-                    const col = parseInt(this.dataset.col);
-                    
-                    // Clear previous selection in this row
-                    document.querySelectorAll(`.rating-cell[data-row="${row}"]`).forEach(c => {
-                        c.classList.remove('selected');
-                    });
-                    
-                    // Select this cell
-                    this.classList.add('selected');
-                    
-                    // Update selected rating
-                    selectedRatings[row] = col + 1;
-                    
-                    // Show level description for this rating
-                    showLevelDescription(row, col);
-                    
-                    // Show feedback row for this criterion
-                    showFeedbackRow(row);
-                    
-                    // Update total score
-                    updateTotalScore();
+
+            // Stores the selected rating for each criterion (0-3, or null if not selected)
+            const selectedRatings = Array(criteriaLabels.length).fill(null);
+            // Stores the feedback text for each criterion
+            const feedbackTexts = Array(criteriaLabels.length).fill('');
+
+            // Function to calculate and update the total score
+            function updateScore() {
+                let totalScore = 0;
+                selectedRatings.forEach(rating => {
+                    if (rating !== null) {
+                        totalScore += (rating + 1); // Levels are 1-4, so add 1 to 0-3 index
+                    }
                 });
-            });
-            
-            // Add click event to criteria names for toggling descriptions
-            criteriaNames.forEach(criteria => {
-                criteria.addEventListener('click', function() {
-                    const criteriaIndex = parseInt(this.dataset.criteria);
-                    toggleDescriptionRow(criteriaIndex);
-                });
-            });
-            
-            // Toggle description row visibility
-            function toggleDescriptionRow(index) {
-                const descriptionRow = document.getElementById(`description-row-${index}`);
-                
-                if (descriptionVisibility[index]) {
-                    // Hide description
-                    descriptionRow.classList.remove('visible');
-                } else {
-                    // Show description
-                    descriptionRow.classList.add('visible');
-                }
-                
-                // Toggle visibility state
-                descriptionVisibility[index] = !descriptionVisibility[index];
+                totalScoreElement.textContent = totalScore;
+                cornerScoreElement.textContent = totalScore;
             }
-            
-            // Show level description for a specific rating
-            function showLevelDescription(rowIndex, colIndex) {
-                const levelDescriptionRow = document.getElementById(`level-description-row-${rowIndex}`);
-                const levelDescriptionText = document.getElementById(`level-description-text-${rowIndex}`);
-                
-                // Set the description text
-                levelDescriptionText.textContent = levelDescriptions[rowIndex][colIndex];
-                
-                // Show the description row
-                levelDescriptionRow.classList.add('visible');
-            }
-            
-            // Show feedback row for a specific criterion
-            function showFeedbackRow(rowIndex) {
-                const feedbackRow = document.getElementById(`feedback-row-${rowIndex}`);
-                feedbackRow.classList.add('visible');
-                
-                // Save feedback text when it changes
-                const textarea = feedbackRow.querySelector('textarea');
-                textarea.value = feedbackTexts[rowIndex]; // Restore any previously entered feedback
-                
-                textarea.addEventListener('input', function() {
-                    feedbackTexts[rowIndex] = this.value;
-                });
-            }
-            
-            // Reset button - modified to preserve feedback
-            resetBtn.addEventListener('click', function() {
-                // Clear all selections
+
+            // Function to reset the rubric to its initial state
+            function resetRubric() {
+                selectedRatings.fill(null); // Reset all selected ratings
+                feedbackTexts.fill(''); // Clear all feedback texts
+                updateScore(); // Update the displayed score
+
+                // Remove 'selected' class from all cells
                 ratingCells.forEach(cell => {
                     cell.classList.remove('selected');
                 });
-                
-                // Reset ratings
-                for (let i = 0; i < selectedRatings.length; i++) {
-                    selectedRatings[i] = null;
-                }
-                
-                // Hide all level description rows
+
+                // Hide all feedback rows and clear textareas
+                feedbackRows.forEach(row => {
+                    row.classList.remove('visible');
+                    row.querySelector('textarea').value = '';
+                });
+
+                // Hide all level description rows and clear their text
                 document.querySelectorAll('.level-description-row').forEach(row => {
                     row.classList.remove('visible');
+                    row.querySelector('p').textContent = '';
                 });
-                
-                // Check each feedback row - only hide if empty
-                for (let i = 0; i < feedbackTexts.length; i++) {
-                    const textarea = document.querySelector(`#feedback-row-${i} textarea`);
-                    const feedbackRow = document.getElementById(`feedback-row-${i}`);
-                    
-                    // If there's text in the feedback, keep it visible and preserve the text
-                    if (textarea && textarea.value.trim() !== '') {
-                        feedbackRow.classList.add('visible');
-                        feedbackTexts[i] = textarea.value; // Ensure the text is saved in our array
-                    } else {
-                        // If empty, hide the feedback row
-                        feedbackRow.classList.remove('visible');
-                        feedbackTexts[i] = '';
-                    }
-                }
-                
-                // Clear student name
-                studentNameInput.value = '';
-                
-                // Update total score
-                updateTotalScore();
-                
-                // Clear any error or success messages
-                hideErrorMessage();
-                hideSuccessMessage();
-                
-                // Note: We do NOT reset the description visibility - they remain as they were
-            });
-            
-            // Save button with missing criteria validation and clipboard functionality
-            saveBtn.addEventListener('click', function() {
-                // Check if student name is provided
-                const studentName = studentNameInput.value.trim();
-                if (!studentName) {
-                    showErrorMessage("Please enter a student name.");
-                    studentNameInput.focus();
-                    return;
-                }
-                
-                // Check which criteria are missing ratings
-                const missingCriteria = [];
-                for (let i = 0; i < selectedRatings.length; i++) {
-                    if (selectedRatings[i] === null) {
-                        missingCriteria.push(criteriaLabels[i]);
-                    }
-                }
-                
-                if (missingCriteria.length > 0) {
-                    // Show error message with missing criteria
-                    const missingMessage = missingCriteria.map(name => `${name} Missing!`).join(' ');
-                    showErrorMessage(missingMessage);
-                    
-                    // Highlight the missing criteria rows
-                    missingCriteria.forEach((name, index) => {
-                        const criteriaIndex = criteriaLabels.indexOf(name);
-                        if (criteriaIndex !== -1) {
-                            const row = document.getElementById(`criteria-row-${criteriaIndex}`);
-                            row.classList.add('highlight-missing');
-                            
-                            // Remove the highlight class after animation completes
-                            setTimeout(() => {
-                                row.classList.remove('highlight-missing');
-                            }, 1500);
+
+                // Hide all general description rows
+                document.querySelectorAll('.description-row').forEach((row, index) => {
+                    row.classList.remove('visible');
+                    descriptionVisibility[index] = false;
+                });
+
+                studentNameInput.value = ''; // Clear student name
+                hideMessage(errorMessageElement);
+                hideMessage(successMessageElement);
+                rubricContainer.classList.remove('finalized-view');
+                enableRubricInteraction(); // Re-enable interactions
+                editBtn.classList.remove('hidden'); // Ensure Edit button is visible
+                saveChangesBtn.classList.add('hidden'); // Ensure Save Changes button is hidden
+                setTableEditable(false); // Lock the table text
+            }
+
+            // Function to show a message (error or success)
+            function showMessage(element, message) {
+                element.textContent = message;
+                element.classList.add('visible');
+                setTimeout(() => {
+                    hideMessage(element);
+                }, 5000); // Message disappears after 5 seconds
+            }
+
+            // Function to hide a message
+            function hideMessage(element) {
+                element.classList.remove('visible');
+                element.textContent = '';
+            }
+
+            // Function to enable all rubric interactions (selection, feedback, etc.)
+            function enableRubricInteraction() {
+                ratingCells.forEach(cell => {
+                    cell.style.pointerEvents = 'auto';
+                    cell.style.cursor = 'pointer';
+                });
+                feedbackRows.forEach(row => {
+                    row.querySelector('textarea').readOnly = false;
+                });
+                criteriaNames.forEach(name => {
+                    name.style.pointerEvents = 'auto';
+                    name.style.cursor = 'pointer';
+                });
+                studentNameInput.readOnly = false;
+                saveBtn.disabled = false;
+                resetBtn.disabled = false;
+            }
+
+            // Function to disable all rubric interactions
+            function disableRubricInteraction() {
+                ratingCells.forEach(cell => {
+                    cell.style.pointerEvents = 'none';
+                    cell.style.cursor = 'default';
+                });
+                feedbackRows.forEach(row => {
+                    row.querySelector('textarea').readOnly = true;
+                });
+                criteriaNames.forEach(name => {
+                    name.style.pointerEvents = 'none';
+                    name.style.cursor = 'default';
+                });
+                studentNameInput.readOnly = true;
+                saveBtn.disabled = true;
+                resetBtn.disabled = true;
+            }
+
+            // Function to make table cells editable or read-only
+            function setTableEditable(isEditable) {
+                const cells = rubricTable.querySelectorAll('td, th'); // Select all table data and header cells
+                cells.forEach(cell => {
+                    // Exclude the feedback textareas as they are handled separately
+                    if (!cell.querySelector('textarea')) {
+                        if (isEditable) {
+                            cell.setAttribute('contenteditable', 'true');
+                            cell.classList.add('border-dashed', 'border-2', 'border-blue-300'); // Add visual cue for edit mode
+                        } else {
+                            cell.removeAttribute('contenteditable');
+                            cell.classList.remove('border-dashed', 'border-2', 'border-blue-300'); // Remove visual cue
                         }
-                    });
-                    
-                    return;
-                }
-                
-                // All criteria have been rated, proceed with saving
-                const totalScore = calculateTotalScore();
-                
-                // Copy the total score to clipboard
-                copyToClipboard(totalScore.toString());
-                
-                // Show success message
-                showSuccessMessage(`Score ${totalScore} copied to clipboard!`);
-                
-                // Store the current assessment data
-                currentAssessmentData = {
-                    studentName: studentName,
-                    ratings: [...selectedRatings], // Create a copy of the array
-                    feedback: [...feedbackTexts], // Create a copy of the array
-                    totalScore: totalScore
-                };
-                
-                // Display the assessment summary
-                showSummaryModal(currentAssessmentData);
-            });
-            
-            // Finalize button - replace the rubric with a finalized view
-            finalizeBtn.addEventListener('click', function() {
-                if (!currentAssessmentData) return;
-                
-                // Close the modal
-                saveModal.classList.remove('visible');
-                
-                // Create the finalized view
-                createFinalizedView(currentAssessmentData);
-            });
-            
-            // Create finalized view
-            function createFinalizedView(data) {
-                // Get score color based on total score
-                let scoreColor = '#4f46e5'; // Default indigo
-                if (data.totalScore >= 16) {
-                    scoreColor = '#10B981'; // Green for high scores
-                } else if (data.totalScore >= 10) {
-                    scoreColor = '#4f46e5'; // Default indigo for medium scores
-                } else {
-                    scoreColor = '#F59E0B'; // Amber for low scores
-                }
-                
-                // Create the finalized HTML
-                const finalizedHTML = `
-                    <div class="finalized-view p-6">
-                        <div class="p-6 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center">
-                            <div>
-                                <h1 class="text-2xl font-bold">Assessment Report</h1>
-                                <p class="text-indigo-100 mt-1">Finalized Rubric</p>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="mr-4 font-semibold text-white">
-                                    <span class="text-lg">${data.studentName}</span>
-                                </div>
-                                <div style="background-color: ${scoreColor}" class="px-4 py-2 rounded-lg text-white font-bold text-xl">
-                                    ${data.totalScore}/20
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="p-6 bg-white rounded-b-lg shadow-md">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <h2 class="text-xl font-bold text-gray-800 mb-4">Criteria Ratings</h2>
-                                    <div class="space-y-4">
-                                        ${data.ratings.map((rating, index) => {
-                                            const ratingText = ratingLevels[index][rating - 1];
-                                            return `
-                                                <div class="p-3 bg-gray-50 rounded-lg">
-                                                    <div class="flex justify-between items-center mb-2">
-                                                        <span class="font-medium text-gray-700">${criteriaLabels[index]}</span>
-                                                        <span class="rating-badge rating-${rating}">${rating}/4 - ${ratingText}</span>
-                                                    </div>
-                                                    <p class="text-sm text-gray-600 mt-1">${levelDescriptions[index][rating-1].split(': ')[1]}</p>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <h2 class="text-xl font-bold text-gray-800 mb-4">Feedback</h2>
-                                    <div class="space-y-4">
-                                        ${data.feedback.map((feedback, index) => {
-                                            if (feedback.trim()) {
-                                                return `
-                                                    <div class="feedback-card">
-                                                        <h3 class="font-semibold text-indigo-700">${criteriaLabels[index]}</h3>
-                                                        <p class="text-gray-700 mt-1">${feedback}</p>
-                                                    </div>
-                                                `;
-                                            } else {
-                                                return `
-                                                    <div class="feedback-card opacity-50">
-                                                        <h3 class="font-semibold text-indigo-700">${criteriaLabels[index]}</h3>
-                                                        <p class="text-gray-500 mt-1 italic">No feedback provided</p>
-                                                    </div>
-                                                `;
-                                            }
-                                        }).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-8 pt-6 border-t border-gray-200">
-                                <div class="flex justify-end">
-                                    <button id="edit-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white transition-colors">
-                                        Edit Assessment
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Replace the rubric container content
-                rubricContainer.innerHTML = finalizedHTML;
-                
-                // Add event listener to the edit button
-                document.getElementById('edit-btn').addEventListener('click', function() {
-                    // Reload the page to start over
-                    window.location.reload();
-                });
-            }
-            
-            // Copy text to clipboard
-            function copyToClipboard(text) {
-                // Create a temporary textarea element
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                textarea.setAttribute('readonly', '');
-                textarea.style.position = 'absolute';
-                textarea.style.left = '-9999px';
-                document.body.appendChild(textarea);
-                
-                // Select and copy the text
-                textarea.select();
-                document.execCommand('copy');
-                
-                // Remove the temporary element
-                document.body.removeChild(textarea);
-            }
-            
-            // Show error message
-            function showErrorMessage(message) {
-                // Hide any success message first
-                hideSuccessMessage();
-                
-                // Show error message
-                errorMessageElement.textContent = message;
-                errorMessageElement.classList.add('visible');
-                
-                // Hide the message after 3 seconds
-                setTimeout(hideErrorMessage, 3000);
-            }
-            
-            // Hide error message
-            function hideErrorMessage() {
-                errorMessageElement.textContent = '';
-                errorMessageElement.classList.remove('visible');
-            }
-            
-            // Show success message
-            function showSuccessMessage(message) {
-                // Hide any error message first
-                hideErrorMessage();
-                
-                // Show success message
-                successMessageElement.textContent = message;
-                successMessageElement.classList.add('visible');
-                
-                // Hide the message after 3 seconds
-                setTimeout(hideSuccessMessage, 3000);
-            }
-            
-            // Hide success message
-            function hideSuccessMessage() {
-                successMessageElement.textContent = '';
-                successMessageElement.classList.remove('visible');
-            }
-            
-            // Show summary modal with data
-            function showSummaryModal(data) {
-                // Populate modal with data
-                document.getElementById('modal-student-name').textContent = data.studentName;
-                document.getElementById('modal-total-score').textContent = data.totalScore;
-                
-                // Populate ratings list
-                const ratingsList = document.getElementById('modal-ratings-list');
-                ratingsList.innerHTML = '';
-                
-                for (let i = 0; i < data.ratings.length; i++) {
-                    const li = document.createElement('li');
-                    const ratingValue = data.ratings[i];
-                    const ratingText = ratingLevels[i][ratingValue - 1];
-                    li.textContent = `${criteriaLabels[i]}: ${ratingValue}/4 (${ratingText})`;
-                    ratingsList.appendChild(li);
-                }
-                
-                // Populate feedback
-                const feedbackDiv = document.getElementById('modal-feedback');
-                feedbackDiv.innerHTML = '';
-                
-                let hasFeedback = false;
-                for (let i = 0; i < data.feedback.length; i++) {
-                    if (data.feedback[i].trim()) {
-                        hasFeedback = true;
-                        const feedbackItem = document.createElement('div');
-                        feedbackItem.classList.add('mb-3', 'p-2', 'bg-white', 'rounded');
-                        feedbackItem.innerHTML = `<strong>${criteriaLabels[i]}:</strong> ${data.feedback[i]}`;
-                        feedbackDiv.appendChild(feedbackItem);
-                    }
-                }
-                
-                // If no feedback was provided, show a message
-                if (!hasFeedback) {
-                    feedbackDiv.innerHTML = '<p class="italic text-gray-500">No feedback provided.</p>';
-                }
-                
-                // Show modal
-                saveModal.classList.add('visible');
-            }
-            
-            // Close modal button
-            closeModalBtn.addEventListener('click', function() {
-                saveModal.classList.remove('visible');
-            });
-            
-            // Calculate total score
-            function calculateTotalScore() {
-                let total = 0;
-                selectedRatings.forEach(rating => {
-                    if (rating !== null) {
-                        total += rating;
                     }
                 });
-                return total;
             }
-            
-            // Update total score displays
-            function updateTotalScore() {
-                const total = calculateTotalScore();
-                
-                // Update both score displays
-                totalScoreElement.textContent = total;
-                cornerScoreElement.textContent = total;
-                
-                // Change color based on score
-                const scoreDisplay = document.querySelector('.score-display');
-                if (total >= 16) {
-                    scoreDisplay.style.backgroundColor = '#10B981'; // Green for high scores
-                } else if (total >= 10) {
-                    scoreDisplay.style.backgroundColor = '#4f46e5'; // Default indigo for medium scores
-                } else if (total > 0) {
-                    scoreDisplay.style.backgroundColor = '#F59E0B'; // Amber for low scores
-                } else {
-                    scoreDisplay.style.backgroundColor = '#4f46e5'; // Default indigo when no selections
-                }
-            }
-            
-            // Initialize event listeners for all textareas to save feedback as it's entered
-            document.querySelectorAll('.feedback-row textarea').forEach((textarea, index) => {
+
+            // Event listener for "Edit" button
+            editBtn.addEventListener('click', function() {
+                setTableEditable(true); // Make table text editable
+                editBtn.classList.add('hidden'); // Hide Edit button
+                saveChangesBtn.classList.remove('hidden'); // Show Save Changes button
+                // Optionally, disable other rubric interactions if editing text
+                disableRubricInteraction();
+                // Re-enable feedback textareas specifically
+                feedbackRows.forEach(row => {
+                    row.querySelector('textarea').readOnly = false;
+                });
+            });
+
+            // Event listener for "Save Changes" button
+            saveChangesBtn.addEventListener('click', function() {
+                setTableEditable(false); // Lock table text
+                editBtn.classList.remove('hidden'); // Show Edit button
+                saveChangesBtn.classList.add('hidden'); // Hide Save Changes button
+                // Re-enable all rubric interactions
+                enableRubricInteraction();
+            });
+
+            // Event listeners for rating cells
+            ratingCells.forEach(cell => {
+                cell.addEventListener('click', function() {
+                    if (saveChangesBtn.classList.contains('hidden')) { // Only allow selection if not in edit mode
+                        const row = parseInt(this.dataset.row);
+                        const col = parseInt(this.dataset.col);
+
+                        // Remove 'selected' from all cells in the same row
+                        document.querySelectorAll(`.rubric-row[data-row="${row}"] .rating-cell`).forEach(c => {
+                            c.classList.remove('selected');
+                        });
+
+                        // Add 'selected' to the clicked cell
+                        this.classList.add('selected');
+                        selectedRatings[row] = col; // Store the selected rating
+
+                        updateScore(); // Update the score
+
+                        // Show corresponding feedback row
+                        feedbackRows[row].classList.add('visible');
+
+                        // Update level description
+                        const levelDescriptionTextElement = document.getElementById(`level-description-text-${row}`);
+                        levelDescriptionTextElement.textContent = levelDescriptions[row][col];
+                        document.getElementById(`level-description-row-${row}`).classList.add('visible');
+
+                        // Ensure general description is hidden when a level is selected
+                        document.getElementById(`description-row-${row}`).classList.remove('visible');
+                        descriptionVisibility[row] = false;
+                    }
+                });
+            });
+
+            // Event listeners for feedback textareas
+            feedbackRows.forEach((rowElement, index) => {
+                const textarea = rowElement.querySelector('textarea');
                 textarea.addEventListener('input', function() {
                     feedbackTexts[index] = this.value;
                 });
             });
+
+            // Event listener for Reset button
+            resetBtn.addEventListener('click', resetRubric);
+
+            // Event listener for Save Rubric button
+            saveBtn.addEventListener('click', function() {
+                let allCriteriaRated = true;
+                for (let i = 0; i < selectedRatings.length; i++) {
+                    if (selectedRatings[i] === null) {
+                        allCriteriaRated = false;
+                        // Highlight the unrated row
+                        document.getElementById(`criteria-row-${i}`).classList.add('highlight-missing');
+                        setTimeout(() => {
+                            document.getElementById(`criteria-row-${i}`).classList.remove('highlight-missing');
+                        }, 1500);
+                    }
+                }
+
+                if (!allCriteriaRated) {
+                    showMessage(errorMessageElement, 'Please rate all criteria before saving.');
+                    hideMessage(successMessageElement); // Ensure success message is hidden
+                    return;
+                }
+
+                showMessage(successMessageElement, 'Rubric saved successfully!');
+                hideMessage(errorMessageElement); // Ensure error message is hidden
+
+                // Populate modal with summary
+                document.getElementById('modal-student-name').textContent = studentNameInput.value || 'N/A';
+                document.getElementById('modal-total-score').textContent = totalScoreElement.textContent;
+
+                const modalRatingsList = document.getElementById('modal-ratings-list');
+                modalRatingsList.innerHTML = ''; // Clear previous list
+                selectedRatings.forEach((rating, index) => {
+                    const listItem = document.createElement('li');
+                    const ratingValue = rating !== null ? ratingLevels[index][rating] : 'Not Rated';
+                    const scoreValue = rating !== null ? (rating + 1) : 0;
+                    const badgeClass = rating !== null ? `rating-${rating + 1}` : '';
+                    listItem.innerHTML = `<strong>${criteriaLabels[index]}:</strong> <span class="rating-badge ${badgeClass}">${ratingValue}</span> (Score: ${scoreValue})`;
+                    modalRatingsList.appendChild(listItem);
+                });
+
+                const modalFeedback = document.getElementById('modal-feedback');
+                modalFeedback.innerHTML = ''; // Clear previous feedback
+                feedbackTexts.forEach((feedback, index) => {
+                    if (feedback.trim() !== '') {
+                        const feedbackCard = document.createElement('div');
+                        feedbackCard.classList.add('feedback-card', 'p-3', 'bg-gray-100', 'rounded-md', 'mb-2');
+                        feedbackCard.innerHTML = `<p class="font-semibold text-indigo-700">${criteriaLabels[index]}:</p><p>${feedback}</p>`;
+                        modalFeedback.appendChild(feedbackCard);
+                    }
+                });
+
+                saveModal.classList.add('visible'); // Show the modal
+            });
+
+            // Event listener for closing the modal
+            closeModalBtn.addEventListener('click', function() {
+                saveModal.classList.remove('visible');
+            });
+
+            // Event listener for Finalize button in modal
+            finalizeBtn.addEventListener('click', function() {
+                saveModal.classList.remove('visible');
+                rubricContainer.classList.add('finalized-view');
+                disableRubricInteraction(); // Disable interactions after finalizing
+                showMessage(successMessageElement, 'Rubric finalized!');
+            });
+
+            // Event listeners for criteria names to toggle description rows
+            criteriaNames.forEach((criteriaNameElement, index) => {
+                criteriaNameElement.addEventListener('click', function() {
+                    const descriptionRow = document.getElementById(`description-row-${index}`);
+                    const levelDescriptionRow = document.getElementById(`level-description-row-${index}`);
+
+                    // Toggle visibility of the general description row
+                    descriptionVisibility[index] = !descriptionVisibility[index];
+                    if (descriptionVisibility[index]) {
+                        descriptionRow.classList.add('visible');
+                    } else {
+                        descriptionRow.classList.remove('visible');
+                    }
+
+                    // Hide the level description if the general description is shown
+                    if (descriptionVisibility[index]) {
+                        levelDescriptionRow.classList.remove('visible');
+                    }
+                });
+            });
+
+            // Initial setup: update score and hide messages
+            updateScore();
+            hideMessage(errorMessageElement);
+            hideMessage(successMessageElement);
         });
     </script>
-<script>(function(){
-    function c(){
-        var b=a.contentDocument||a.contentWindow.document;
-        if(b){
-            var d=b.createElement('script');
-            d.innerHTML="window.__CF$cv$params={r:'962b4bd674c05e70',t:'MTc1MzEwNzE3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
-            b.getElementsByTagName('head')[0].appendChild(d)}}
-        if(document.body){var a=document.createElement('iframe');
-        a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;
-        a.style.left=0;a.style.border='none';a.style.visibility='hidden';
-        document.body.appendChild(a);
-        if('loading'!==document.readyState)c();
-        else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);
-        else{var e=document.onreadystatechange||function(){};
-        document.onreadystatechange=function(b){
-            e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();
-</script>
-<!-- <script>
-document.querySelectorAll('button, a').forEach(function(el) {
-    const text = el.textContent.trim();
-    if (text !== "Reset" && text !== "Save Rubric") {
-        el.setAttribute('contenteditable', 'true');
-    }
-});
-</script> -->
-
-
 </body>
 </html>
